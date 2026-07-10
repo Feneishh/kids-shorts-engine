@@ -3,14 +3,21 @@ import asyncio
 import requests
 from flask import Flask, request, send_file, jsonify
 import edge_tts
+from gtts import gTTS
 from moviepy.editor import ImageClip, AudioFileClip, TextClip, CompositeVideoClip
 
 app = Flask(__name__)
 
 async def generate_audio(text, output_path):
-    # Çocuk videolarına en uygun, en doğal Türkçe yapay zeka sesi (Ahmet)
-    communicate = edge_tts.Communicate(text, "tr-TR-AhmetNeural")
-    await communicate.save(output_path)
+    try:
+        # 1. Tercih: Doğal Microsoft Yapay Zeka Sesi
+        communicate = edge_tts.Communicate(text, "tr-TR-AhmetNeural")
+        await communicate.save(output_path)
+    except Exception as e:
+        # 2. Tercih (B Planı): Microsoft engellerse devreye giren kesintisiz Google Sesi
+        print(f"Edge-TTS engeline takılındı, Google-TTS devreye alınıyor: {e}")
+        tts = gTTS(text=text, lang='tr')
+        tts.save(output_path)
 
 @app.route('/process-video', methods=['POST'])
 def process_video():
@@ -30,7 +37,7 @@ def process_video():
         with open("input_img.jpg", "wb") as f:
             f.write(img_res.content)
 
-        # 2. Ücretsiz ve Sınırsız Sesi Üret (Edge-TTS)
+        # 2. Sesi Üret (Önce Microsoft, hata olursa Google)
         asyncio.run(generate_audio(caption_text, "input_audio.mp3"))
 
         # 3. Video ve Sesi Birleştir
