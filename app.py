@@ -2,6 +2,12 @@ import os
 import asyncio
 import requests
 from flask import Flask, request, send_file, jsonify
+
+# MoviePy'nin yeni Pillow sürümleriyle (Pillow 10+) uyumlu çalışması için kritik yama
+import PIL.Image
+if not hasattr(PIL.Image, 'ANTIALIAS'):
+    PIL.Image.ANTIALIAS = PIL.Image.Resampling.LANCZOS
+
 import edge_tts
 from gtts import gTTS
 from moviepy.editor import ImageClip, AudioFileClip, TextClip, CompositeVideoClip
