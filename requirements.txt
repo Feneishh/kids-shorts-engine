@@ -2,3 +2,4 @@ Flask==3.0.3
 requests==2.32.3
 edge-tts==6.1.12
 moviepy==1.0.3
+gTTS==2.5.4
