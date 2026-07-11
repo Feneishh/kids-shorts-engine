@@ -1,4 +1,5 @@
 import os
+import gc
 import asyncio
 import requests
 from flask import Flask, request, send_file, jsonify
@@ -28,6 +29,9 @@ async def generate_audio(text, output_path):
 @app.route('/process-video', methods=['POST'])
 def process_video():
     try:
+        # Her istek başında RAM temizliği tetikle
+        gc.collect()
+        
         data = request.get_json()
         if not data:
             return jsonify({"error": "JSON verisi bulunamadı"}), 400
@@ -57,9 +61,9 @@ def process_video():
         # 4. Alt Bölüme Dinamik Altyazı Çak (Shorts Formatı)
         txt_clip = TextClip(
             caption_text, 
-            fontsize=65, 
+            fontsize=60, 
             color='yellow', 
-           font='Liberation-Sans-Bold',
+            font='Liberation-Sans-Bold',
             stroke_color='black', 
             stroke_width=4,
             method='caption',
@@ -70,24 +74,33 @@ def process_video():
         final_video = CompositeVideoClip([image_clip, txt_clip], size=(1080, 1920))
         
         output_filename = "output_shorts.mp4"
+        
+        # RAM DOSTU RENDER AYARLARI
         final_video.write_videofile(
             output_filename, 
-            fps=24, 
+            fps=20,                 # RAM birikmesini önlemek için FPS'i hafifçe 20'ye çektik
             codec="libx264", 
             audio_codec="aac",
+            threads=1,              # ÇOK KRİTİK: Birden fazla thread RAM'i patlatır. 1 yaparak RAM'i koruyoruz.
+            preset="ultrafast",     # Sunucu işlemcisini yormadan jet hızıyla bitirmesini sağlar
             logger=None
         )
 
-        # Ram temizliği yap
+        # Ram temizliğini elinle zorla yap
         audio_clip.close()
         image_clip.close()
         txt_clip.close()
         final_video.close()
+        
+        # Hafızadaki kalıntıları uçur
+        del final_video, image_clip, audio_clip, txt_clip
+        gc.collect()
 
         # Hazırlanan MP4 dosyasını doğrudan Make.com'a geri fırlat
         return send_file(output_filename, mimetype='video/mp4', as_attachment=True)
 
     except Exception as e:
+        gc.collect()
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
