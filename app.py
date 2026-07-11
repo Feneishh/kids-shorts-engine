@@ -59,7 +59,7 @@ def process_video():
             caption_text, 
             fontsize=65, 
             color='yellow', 
-            font='Arial-Bold',
+           font='Liberation-Sans-Bold',
             stroke_color='black', 
             stroke_width=4,
             method='caption',
